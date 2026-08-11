@@ -6,7 +6,7 @@ on:
 
 jobs:
   # ==========================================
-  # [1단계: CI] 소스코드 Lint 검사
+  # [1단계: CI] 소스코드 Lint 검사 (Docker 활용)
   # ==========================================
   ci-test:
     name: 🔍 [CI] 소스코드 Lint 및 문법 검사
@@ -16,19 +16,11 @@ jobs:
       - name: 코드 Checkout
         uses: actions/checkout@v4
 
-      - name: Node.js 20.x LTS 설치 및 HTMLHint 설정
-        run: |
-          # Rocky Linux 기본 구버전 Node.js 대신 NodeSource 20.x 저장소 등록 후 설치
-          curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
-          sudo dnf install -y nodejs
-
-          # 최신 Node.js 환경에서 HTMLHint 글로벌 설치
-          sudo npm install -g htmlhint
-
       - name: HTML Lint 검사 수행
         run: |
           echo "=== HTML 문법 및 린트 검사 시작 ==="
-          htmlhint "src/*.html"
+          # 서버에 Node.js 설치 없이 Docker로 HTMLHint 구동
+          docker run --rm -v $(pwd):/html htmlhint/htmlhint "src/*.html"
 
   # ==========================================
   # [2단계: CD] Docker 빌드, 배포, 헬스체크
