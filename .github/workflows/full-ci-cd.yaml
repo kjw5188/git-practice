@@ -1,4 +1,4 @@
-name: Full Stack CI/CD (Lint + Nginx Conf & Src Mount + NCP Deploy + Slack)
+name: Full Stack CI/CD (Lint + Guard Check + Nginx Conf & Src Mount + NCP Deploy + Slack)
 
 on:
   push:
@@ -40,15 +40,50 @@ jobs:
       - name: 코드 Checkout
         uses: actions/checkout@v4
 
+      # ----------------------------------------------------
+      # 🛡️ [안전장치] 필수 배포 파일 및 디렉터리 사전 검증 (Guard Check)
+      # ----------------------------------------------------
+      - name: 0. 배포 대상 파일 및 디렉터리 사전 검증
+        run: |
+          echo "=== 🔍 배포 파일 및 경로 사전 검증 시작 ==="
+          
+          CONF_PATH="${{ github.workspace }}/nginx/conf/nginx.conf"
+          SRC_PATH="${{ github.workspace }}/nginx/src/index.html"
+
+          # 1. nginx.conf 파일 존재 확인
+          if [ ! -f "$CONF_PATH" ]; then
+              echo "❌ [ERROR] Nginx 설정 파일이 존재하지 않습니다: $CONF_PATH"
+              exit 1
+          fi
+
+          # 2. index.html 파일 존재 확인
+          if [ ! -f "$SRC_PATH" ]; then
+              echo "❌ [ERROR] 웹 소스 파일(index.html)이 존재하지 않습니다: $SRC_PATH"
+              exit 1
+          fi
+
+          # 3. src 디렉터리가 비어있는지 확인
+          if [ -z "$(ls -A ${{ github.workspace }}/nginx/src)" ]; then
+              echo "❌ [ERROR] nginx/src 디렉터리가 비어 있습니다!"
+              exit 1
+          fi
+
+          echo "✅ 모든 필수 파일 및 디렉터리 검증 완료!"
+
+      # ----------------------------------------------------
+      # 🚀 [배포] Nginx 컨테이너 무중단 반영
+      # ----------------------------------------------------
       - name: 1. Nginx 컨테이너 상태 점검 및 무중단 Reload 배포
         run: |
           echo "=== Nginx 컨테이너 점검 및 배포 시작 ==="
 
           if [ $(docker ps -q -f name=web-app) ]; then
-              echo "✅ Nginx 컨테이너 구동 중. nginx -s reload 실행"
+              echo "✅ Nginx 컨테이너가 이미 구동 중입니다."
+              echo "🔄 Volume Binding에 의해 최신 소스 및 설정이 즉시 공유되었습니다."
+              echo "⚡ nginx -s reload를 호출하여 다운타임 없이 반영합니다."
               docker exec web-app nginx -s reload
           else
-              echo "🚀 신규 컨테이너 구동 및 볼륨 마운트 진행"
+              echo "🚀 컨테이너가 없거나 정지 상태입니다. 신규 생성 및 볼륨 바인딩을 진행합니다..."
               docker rm -f web-app || true
 
               # nginx/src ➔ /usr/share/nginx/html
@@ -98,5 +133,5 @@ jobs:
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_TITLE: "🔴 [NCP Rocky Linux 8.10] 배포 실패!"
-          SLACK_MESSAGE: "CI 문법 검사, 헬스체크 또는 배포 과정에서 에러가 발생했습니다."
+          SLACK_MESSAGE: "CI 문법 검사, 경로 사전 검증, 헬스체크 또는 배포 과정에서 에러가 발생했습니다."
           SLACK_COLOR: "danger"
