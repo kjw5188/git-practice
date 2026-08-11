@@ -1,4 +1,4 @@
-name: Full Stack CI/CD (Lint + Docker Volume Binding + NCP Deploy + Slack)
+name: Full Stack CI/CD (Lint + Docker Volume Mount + NCP Deploy + Slack)
 
 on:
   push:
@@ -23,10 +23,10 @@ jobs:
           docker run --rm -v $(pwd):/app -w /app node:20-alpine npx htmlhint "src/*.html"
 
   # ==========================================
-  # [2단계: CD] Nginx 컨테이너 구동 & Volume Binding 배포 & 헬스체크
+  # [2단계: CD] Nginx 무중단 배포 및 헬스체크 (Volume Binding 방식)
   # ==========================================
   cd-deploy:
-    name: 🚀 [CD] Nginx Volume Binding 배포 및 NCP 반영
+    name: 🚀 [CD] Nginx 무중단 배포 및 NCP 반영
     needs: ci-test # CI 검사가 성공해야만 실행
     runs-on: self-hosted
 
@@ -34,26 +34,32 @@ jobs:
       - name: 코드 Checkout
         uses: actions/checkout@v4
 
-      - name: 1. 기존 컨테이너 정지 및 Volume Binding 구동
+      - name: 1. Nginx 컨테이너 상태 점검 및 스마트 배포
         run: |
-          echo "=== 기존 컨테이너 정리 및 신규 바인딩 구동 ==="
-          if [ $(docker ps -aq -f name=web-app) ]; then
-              echo "기존 web-app 컨테이너 중지 및 제거..."
-              docker stop web-app || true
-              docker rm web-app || true
+          echo "=== Nginx 컨테이너 상태 점검 및 배포 시작 ==="
+          
+          # web-app 컨테이너가 현재 정상 실행 중인지 확인
+          if [ $(docker ps -q -f name=web-app) ]; then
+              echo "✅ Nginx 컨테이너가 이미 구동 중입니다."
+              echo "🔄 Volume Binding에 의해 최신 코드가 적용되었으므로 Nginx 설정/캐시를 Reload합니다."
+              docker exec web-app nginx -s reload
+          else
+              echo "🚀 컨테이너가 없거나 정지 상태입니다. 신규 컨테이너를 구동합니다..."
+              # 혹시 중지/중단되어 남아있는 동일 이름의 컨테이너 정리
+              docker rm -f web-app || true
+              
+              # Nginx 컨테이너 생성 및 호스트 src 디렉터리 마운트
+              docker run -d \
+                --name web-app \
+                -p 80:80 \
+                -v $(pwd)/src:/usr/share/nginx/html \
+                nginx:latest
           fi
-
-          # 호스트의 $(pwd)/src 디렉터리를 Nginx html 루트 경로에 Volume Binding
-          docker run -d \
-            --name web-app \
-            -p 80:80 \
-            -v $(pwd)/src:/usr/share/nginx/html \
-            nginx:latest
 
       - name: 2. 서비스 헬스체크 (Health Check)
         run: |
           echo "=== 서비스 헬스체크 진행 ==="
-          sleep 3
+          sleep 1
           HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:80)
           echo "HTTP 응답 코드: $HTTP_STATUS"
           if [ "$HTTP_STATUS" -ne 200 ]; then
@@ -78,7 +84,7 @@ jobs:
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_TITLE: "🟢 [NCP Rocky Linux 8.10] 배포 성공!"
-          SLACK_MESSAGE: "Nginx 컨테이너(web-app)가 Volume Binding 방식으로 성공적으로 배포되었습니다."
+          SLACK_MESSAGE: "소스코드가 Volume Binding을 통해 성공적으로 갱신되었습니다. (Zero-Downtime)"
           SLACK_COLOR: "good"
 
       - name: Slack 실패 알림
@@ -87,5 +93,5 @@ jobs:
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_TITLE: "🔴 [NCP Rocky Linux 8.10] 배포 실패!"
-          SLACK_MESSAGE: "Lint 검사 또는 Nginx 배포/헬스체크 과정에서 에러가 발생했습니다."
+          SLACK_MESSAGE: "Lint 검사 또는 배포/헬스체크 과정에서 에러가 발생했습니다."
           SLACK_COLOR: "danger"
