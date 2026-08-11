@@ -20,13 +20,12 @@ jobs:
           echo "현재 실행 계정: $(whoami)"
           echo "현재 시각: $(date)"
 
-      - name: 3. 특정 디렉터리에 파일 생성 (요청하신 핵심 기능!)
+      - name: 3. 특정 디렉터리에 파일 삭제 (요청하신 핵심 기능!)
         run: |
-          mkdir -p /tmp/my_first_deploy
+          rm -rf /tmp/my_first_deploy
           echo "GitHub Actions를 통한 자동 배포 성공!" > /tmp/my_first_deploy/deploy_log.txt
-          echo "생성 시각: $(date)" >> /tmp/my_first_deploy/deploy_log.txt
+          echo "삭제 시각: $(date)" >> /tmp/my_first_deploy/deploy_log.txt
 
       - name: 4. 결과 확인
         run: |
           ls -la /tmp/my_first_deploy
-          cat /tmp/my_first_deploy/deploy_log.txt
