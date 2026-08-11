@@ -16,14 +16,20 @@ jobs:
       - name: 코드 Checkout
         uses: actions/checkout@v4
 
-      - name: Node.js 세팅 및 HTMLHint 설치
+      - name: Node.js 20.x LTS 설치 및 HTMLHint 설정
         run: |
-          sudo dnf install -y nodejs || true
+          # Rocky Linux 기본 구버전 Node.js 대신 NodeSource 20.x 저장소 등록 후 설치
+          curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
+          sudo dnf install -y nodejs
+
+          # 최신 Node.js 환경에서 HTMLHint 글로벌 설치
           sudo npm install -g htmlhint
+
       - name: HTML Lint 검사 수행
         run: |
           echo "=== HTML 문법 및 린트 검사 시작 ==="
           htmlhint "src/*.html"
+
   # ==========================================
   # [2단계: CD] Docker 빌드, 배포, 헬스체크
   # ==========================================
@@ -40,6 +46,7 @@ jobs:
         run: |
           echo "=== Docker 이미지 빌드 시작 ==="
           docker build -t git-practice-app:latest .
+
       - name: 2. 기존 컨테이너 정지 및 신규 컨테이너 구동
         run: |
           echo "=== 기존 컨테이너 정리 및 재구동 ==="
@@ -49,6 +56,7 @@ jobs:
               docker rm web-app || true
           fi
           docker run -d --name web-app -p 80:80 git-practice-app:latest
+
       - name: 3. 서비스 헬스체크 (Health Check)
         run: |
           echo "=== 서비스 헬스체크 진행 ==="
@@ -60,6 +68,7 @@ jobs:
               exit 1
           fi
           echo "✅ 헬스체크 성공! 서비스 정상 작동 중"
+
   # ==========================================
   # [3단계: Notification] Slack 알림 전송
   # ==========================================
