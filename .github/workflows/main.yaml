@@ -29,4 +29,4 @@ jobs:
       - name: 4. 결과 확인
         run: |
           ls -la /home/ncloud/github_actions_test
-	  cat /home/ncloud/github_actions_test/test.log
+          cat /home/ncloud/github_actions_test/test.log
