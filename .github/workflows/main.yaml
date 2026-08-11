@@ -1,12 +1,32 @@
-name: Hello GitHub Actions 🚀
+name: NCP Rocky Linux 배포 테스트
 
+# main 브랜치에 코드가 push 될 때 자동 실행
 on:
   push:
     branches: [ "main" ]
 
 jobs:
-  say-hello:
-    runs-on: ubuntu-latest
+  deploy-to-ncp:
+    # 우리가 ncloud 계정으로 띄워둔 내 서버(self-hosted)에서 실행!
+    runs-on: self-hosted
+
     steps:
-      - name: Print Welcome Message 💬
-        run: echo "Hello, World! GitHub Actions 작동 성공!"
+      - name: 1. 저장소 코드 가져오기
+        uses: actions/checkout@v4
+
+      - name: 2. 서버 실행 상태 확인
+        run: |
+          echo "=== NCP Rocky Linux 서버 자동 스크립트 실행 ==="
+          echo "현재 실행 계정: $(whoami)"
+          echo "현재 시각: $(date)"
+
+      - name: 3. 특정 디렉터리에 파일 생성 (요청하신 핵심 기능!)
+        run: |
+          mkdir -p /tmp/my_first_deploy
+          echo "GitHub Actions를 통한 자동 배포 성공!" > /tmp/my_first_deploy/deploy_log.txt
+          echo "생성 시각: $(date)" >> /tmp/my_first_deploy/deploy_log.txt
+
+      - name: 4. 결과 확인
+        run: |
+          ls -la /tmp/my_first_deploy
+          cat /tmp/my_first_deploy/deploy_log.txt
