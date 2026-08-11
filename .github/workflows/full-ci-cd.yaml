@@ -19,13 +19,15 @@ jobs:
       - name: HTML Lint 검사 (Docker node:20-alpine 활용)
         run: |
           echo "=== HTML 문법 검사 시작 ==="
-          docker run --rm -v $(pwd):/app -w /app node:20-alpine npx htmlhint "nginx/src/*.html"
+          docker run --rm -v ${{ github.workspace }}:/app -w /app node:20-alpine npx htmlhint "nginx/src/*.html"
+
       - name: Nginx 설정 파일 문법 검사 (nginx.conf 대상)
         run: |
           echo "=== Nginx 설정 파일(nginx.conf) Syntax Check ==="
           docker run --rm \
-            -v $(pwd)/nginx/conf/nginx.conf:/etc/nginx/nginx.conf:ro \
+            -v ${{ github.workspace }}/nginx/conf/nginx.conf:/etc/nginx/nginx.conf:ro \
             nginx:latest nginx -t
+
   # ==========================================
   # [2단계: CD] Nginx 무중단 배포 (Volume Binding 방식)
   # ==========================================
@@ -41,22 +43,23 @@ jobs:
       - name: 1. Nginx 컨테이너 상태 점검 및 무중단 Reload 배포
         run: |
           echo "=== Nginx 컨테이너 점검 및 배포 시작 ==="
+
+          # web-app 컨테이너 구동 여부 확인
           if [ $(docker ps -q -f name=web-app) ]; then
               echo "✅ Nginx 컨테이너가 이미 구동 중입니다."
-              echo "🔄 Volume Binding에 의해 nginx.conf 및 웹 소스가 즉시 공유되었습니다."
+              echo "🔄 Volume Binding에 의해 nginx.conf 및 웹 소스가 즉시 적용되었습니다."
               echo "⚡ nginx -s reload를 호출하여 다운타임 없이 반영합니다."
               docker exec web-app nginx -s reload
           else
               echo "🚀 컨테이너가 없거나 정지 상태입니다. 신규 생성 및 볼륨 바인딩을 진행합니다..."
               docker rm -f web-app || true
 
-              # src(웹소스)와 conf/nginx.conf(메인설정) 볼륨 바인딩 (:z 옵션으로 SELinux 대응)
-              # 서버에 nginx 이미지가 없더라도 docker run 명령어가 알아서 Docker Hub에서 Pull 받아옵니다.
+              # ${{ github.workspace }} 절대 경로로 정확하게 바인딩 (:z 플래그로 SELinux 대응)
               docker run -d \
                 --name web-app \
                 -p 80:80 \
-                -v $(pwd)/nginx/src:/usr/share/nginx/html:z \
-                -v $(pwd)/nginx/conf/nginx.conf:/etc/nginx/nginx.conf:z \
+                -v ${{ github.workspace }}/nginx/src:/usr/share/nginx/html:z \
+                -v ${{ github.workspace }}/nginx/conf/nginx.conf:/etc/nginx/nginx.conf:z \
                 nginx:latest
           fi
 
@@ -71,6 +74,7 @@ jobs:
               exit 1
           fi
           echo "✅ 헬스체크 성공! 서비스 정상 작동 중"
+
   # ==========================================
   # [3단계: Notification] Slack 알림 전송
   # ==========================================
