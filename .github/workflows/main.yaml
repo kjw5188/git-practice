@@ -23,10 +23,10 @@ jobs:
       - name: 3. 특정 디렉터리에 생성 (요청하신 핵심 기능!)
         run: |
           mkdir -p /home/ncloud/github_actions_test
-          echo "GitHub Actions를 통한 자동 배포 성공!" > /tmp/my_first_deploy/deploy_log.txt
-          echo "삭제 시각: $(date)" >> /tmp/my_first_deploy/deploy_log.txt
+          echo "GitHub Actions를 통한 자동 배포 성공!" > /home/ncloud/github_actions_test/test.log
+          echo "삭제 시각: $(date)" >> /home/ncloud/github_actions_test/test.log
 
       - name: 4. 결과 확인
         run: |
           ls -la /home/ncloud/github_actions_test
-          echo "deploy from github actions test" > /home/ncloud/github_actions_test/test.txt
+	  cat /home/ncloud/github_actions_test/test.log
