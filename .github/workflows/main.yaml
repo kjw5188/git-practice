@@ -29,6 +29,8 @@ jobs:
       - name: 4. 결과 확인
         run: |
           echo "#ls -al"
+          echo ""
           ls -la /home/ncloud/github_actions_test
           echo "#cat /home/ncloud/github_actions_test/test.log"
+          echo ""
           cat /home/ncloud/github_actions_test/test.log
