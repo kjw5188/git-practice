@@ -19,8 +19,8 @@ jobs:
       - name: HTML Lint 검사 수행
         run: |
           echo "=== HTML 문법 및 린트 검사 시작 ==="
-          # 서버에 Node.js 설치 없이 Docker로 HTMLHint 구동
-          docker run --rm -v $(pwd):/html htmlhint/htmlhint "src/*.html"
+          # 올바른 Docker 이미지 이름(htmlhint/cli) 사용
+          docker run --rm -v $(pwd):/html htmlhint/cli "src/*.html"
 
   # ==========================================
   # [2단계: CD] Docker 빌드, 배포, 헬스체크
