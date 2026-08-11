@@ -44,17 +44,15 @@ jobs:
         run: |
           echo "=== Nginx 컨테이너 점검 및 배포 시작 ==="
 
-          # web-app 컨테이너 구동 여부 확인
           if [ $(docker ps -q -f name=web-app) ]; then
-              echo "✅ Nginx 컨테이너가 이미 구동 중입니다."
-              echo "🔄 Volume Binding에 의해 nginx.conf 및 웹 소스가 즉시 적용되었습니다."
-              echo "⚡ nginx -s reload를 호출하여 다운타임 없이 반영합니다."
+              echo "✅ Nginx 컨테이너 구동 중. nginx -s reload 실행"
               docker exec web-app nginx -s reload
           else
-              echo "🚀 컨테이너가 없거나 정지 상태입니다. 신규 생성 및 볼륨 바인딩을 진행합니다..."
+              echo "🚀 신규 컨테이너 구동 및 볼륨 마운트 진행"
               docker rm -f web-app || true
 
-              # ${{ github.workspace }} 절대 경로로 정확하게 바인딩 (:z 플래그로 SELinux 대응)
+              # nginx/src ➔ /usr/share/nginx/html
+              # nginx/conf/nginx.conf ➔ /etc/nginx/nginx.conf
               docker run -d \
                 --name web-app \
                 -p 80:80 \
