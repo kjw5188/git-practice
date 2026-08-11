@@ -6,7 +6,7 @@ on:
 
 jobs:
   # ==========================================
-  # [1단계: CI] 소스코드 Lint 검사 (Docker 활용)
+  # [1단계: CI] 소스코드 Lint 검사 (공식 Node Docker 활용)
   # ==========================================
   ci-test:
     name: 🔍 [CI] 소스코드 Lint 및 문법 검사
@@ -19,8 +19,8 @@ jobs:
       - name: HTML Lint 검사 수행
         run: |
           echo "=== HTML 문법 및 린트 검사 시작 ==="
-          # 올바른 Docker 이미지 이름(htmlhint/cli) 사용
-          docker run --rm -v $(pwd):/html htmlhint/cli "src/*.html"
+          # Docker 공식 node:20-alpine 컨테이너 내부에서 npx로 htmlhint 실행
+          docker run --rm -v $(pwd):/app -w /app node:20-alpine npx htmlhint "src/*.html"
 
   # ==========================================
   # [2단계: CD] Docker 빌드, 배포, 헬스체크
