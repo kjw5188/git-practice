@@ -88,3 +88,4 @@ jobs:
           SLACK_TITLE: "🔴 [NCP Rocky Linux 8.10] 배포 실패!"
           SLACK_MESSAGE: "Lint 검사 또는 Docker 배포/헬스체크 과정에서 에러가 발생했습니다."
           SLACK_COLOR: "danger"
+
